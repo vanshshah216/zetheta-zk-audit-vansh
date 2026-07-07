@@ -559,7 +559,7 @@ export function RequestAuditForm() {
               disabled={loading}
               className="relative"
             >
-              {loading ? 'Submitting...' : 'Submit Audit Request'}
+              {loading ? 'Submitting...' : 'Create Audit Request'}
             </Button>
           )}
         </div>

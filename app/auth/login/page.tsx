@@ -103,6 +103,23 @@ export default function LoginPage() {
                   </Alert>
                 )}
 
+                <div className="bg-cyan-900/20 border border-cyan-500/20 p-4 rounded-lg text-sm space-y-2 mb-4">
+                  <p className="font-semibold text-cyan-400 mb-2 border-b border-cyan-500/20 pb-2">Demo Credentials (Click to fill)</p>
+                  <div className="flex justify-between items-center group cursor-pointer" onClick={() => form.setValues({ email: 'company@example.com', password: 'password123' })}>
+                    <span className="text-muted-foreground group-hover:text-cyan-300 transition-colors">Company:</span> 
+                    <span className="font-mono text-cyan-300 group-hover:text-cyan-100 transition-colors">company@example.com</span>
+                  </div>
+                  <div className="flex justify-between items-center group cursor-pointer" onClick={() => form.setValues({ email: 'auditor@example.com', password: 'password123' })}>
+                    <span className="text-muted-foreground group-hover:text-cyan-300 transition-colors">Auditor:</span> 
+                    <span className="font-mono text-cyan-300 group-hover:text-cyan-100 transition-colors">auditor@example.com</span>
+                  </div>
+                  <div className="flex justify-between items-center group cursor-pointer" onClick={() => form.setValues({ email: 'verifier@example.com', password: 'password123' })}>
+                    <span className="text-muted-foreground group-hover:text-cyan-300 transition-colors">Verifier:</span> 
+                    <span className="font-mono text-cyan-300 group-hover:text-cyan-100 transition-colors">verifier@example.com</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-cyan-500/10 italic text-center">Password for all accounts is: password123</p>
+                </div>
+
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">Email Address</label>
                   <Input

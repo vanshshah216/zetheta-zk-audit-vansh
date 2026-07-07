@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { LineChart, Line, PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
-import { ArrowUpRight, ArrowDownRight, TrendingUp, CheckCircle, AlertCircle, Clock, Star, Zap } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, TrendingUp, CheckCircle, AlertCircle, Clock, Star, Zap, Info } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
 import { useRouter } from 'next/navigation'
@@ -41,6 +41,13 @@ export function DashboardContent() {
       animate="visible"
       className="w-full space-y-8"
     >
+      <div className="bg-cyan-900/30 border border-cyan-500/30 text-cyan-200 p-3 rounded-lg flex items-center gap-3 mb-2">
+        <Info className="w-5 h-5 text-cyan-400 flex-shrink-0" />
+        <p className="text-sm font-medium">
+          <strong className="text-cyan-400">Demo Mode:</strong> This MVP uses local mock data. Blockchain and ZK proof generation are simulated.
+        </p>
+      </div>
+
       {/* Key Metrics Grid */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Incoming Requests */}

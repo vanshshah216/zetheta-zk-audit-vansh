@@ -117,7 +117,9 @@ export function IncomingRequestsContent() {
         {requests.length === 0 ? (
           <Card className="glass border-border/30">
             <CardContent className="pt-6 text-center">
-              <p className="text-muted-foreground">No requests match your filters.</p>
+              <p className="text-muted-foreground">
+                {auditRequests.length === 0 ? "No incoming audit requests yet." : "No requests match your filters."}
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -173,7 +175,7 @@ export function IncomingRequestsContent() {
                         onClick={() => handleAccept(req.id, req.companyName)}
                       >
                         <CheckCircle className="w-4 h-4 mr-1" />
-                        Accept
+                        Accept Audit
                       </Button>
                       <Button
                         size="sm"

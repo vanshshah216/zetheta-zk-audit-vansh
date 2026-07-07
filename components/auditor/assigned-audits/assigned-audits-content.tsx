@@ -157,7 +157,7 @@ export function AssignedAuditsContent() {
                           className="mt-2 md:mt-0"
                           onClick={() => router.push('/auditor/generate-proof')}
                         >
-                          Generate Proof <ChevronRight className="w-4 h-4 ml-1" />
+                          Generate ZK Proof <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>
                       </div>
                     </div>

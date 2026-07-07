@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowUp, ArrowDown, Clock, CheckCircle, AlertCircle, TrendingUp, Zap } from 'lucide-react'
+import { ArrowUp, ArrowDown, Clock, CheckCircle, AlertCircle, TrendingUp, Zap, Info } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { mockVerifierAPI } from '@/lib/verifier/mock-data'
 import { VerificationAnalytics, VerificationRequest, VerificationHistory } from '@/types/verifier'
@@ -68,6 +68,13 @@ export default function DashboardContent() {
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Verification Dashboard</h1>
         <p className="text-gray-400">Monitor verification requests and blockchain status</p>
+      </div>
+
+      <div className="bg-cyan-900/30 border border-cyan-500/30 text-cyan-200 p-3 rounded-lg flex items-center gap-3">
+        <Info className="w-5 h-5 text-cyan-400 flex-shrink-0" />
+        <p className="text-sm font-medium">
+          <strong className="text-cyan-400">Demo Mode:</strong> This MVP uses local mock data. Blockchain and ZK proof generation are simulated.
+        </p>
       </div>
 
       {/* Key Metrics */}

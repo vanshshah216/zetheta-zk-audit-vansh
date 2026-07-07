@@ -13,6 +13,7 @@ import {
   Shield,
   FileText,
   ExternalLink,
+  Info
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
@@ -82,8 +83,15 @@ export function DashboardContent() {
       animate="visible"
       className="space-y-8"
     >
+      <div className="bg-cyan-900/30 border border-cyan-500/30 text-cyan-200 p-3 rounded-lg flex items-center gap-3 mb-2">
+        <Info className="w-5 h-5 text-cyan-400 flex-shrink-0" />
+        <p className="text-sm font-medium">
+          <strong className="text-cyan-400">Demo Mode:</strong> This MVP uses local mock data. Blockchain and ZK proof generation are simulated.
+        </p>
+      </div>
+
       {/* Top Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <MetricCard
           label="Active Audits"
           value={metrics.activeAudits}
@@ -126,7 +134,7 @@ export function DashboardContent() {
           color="red"
           trend={-3}
         />
-      </div>
+      </motion.div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
