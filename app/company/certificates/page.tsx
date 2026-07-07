@@ -1,23 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Share2, Award, Calendar } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
-import { mockAPI } from '@/lib/company/mock-data'
-import { Certificate } from '@/types/company'
+import { useMockStore } from '@/stores/mock-store'
+import { useToast } from '@/hooks/use-toast'
 
 export default function CertificatesPage() {
-  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const { certificates } = useMockStore()
+  const toast = useToast()
 
-  useEffect(() => {
-    const loadCertificates = async () => {
-      const data = await mockAPI.getCertificates()
-      setCertificates(data)
-    }
-    loadCertificates()
-  }, [])
 
   return (
     <motion.div
@@ -89,11 +82,21 @@ export default function CertificatesPage() {
                   </div>
 
                   <div className="pt-2 space-y-2">
-                    <Button className="w-full" variant="cyan" size="sm">
+                    <Button
+                      className="w-full"
+                      variant="cyan"
+                      size="sm"
+                      onClick={() => toast.success('Download Started', `Certificate ${cert.certificateNumber} PDF is ready.`)}
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Download PDF
                     </Button>
-                    <Button className="w-full" variant="outline" size="sm">
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast.success('Link Copied!', `Shareable link for ${cert.certificateNumber} copied.`)}
+                    >
                       <Share2 className="w-4 h-4 mr-2" />
                       Share
                     </Button>

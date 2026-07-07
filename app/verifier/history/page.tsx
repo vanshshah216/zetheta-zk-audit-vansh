@@ -1,28 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle, AlertCircle, Download } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
-import { mockVerifierAPI } from '@/lib/verifier/mock-data'
-import { VerificationHistory } from '@/types/verifier'
+import { Card, CardContent } from '@/components/ds/card'
+import { useMockStore } from '@/stores/mock-store'
+import { useToast } from '@/hooks/use-toast'
 
 export default function HistoryPage() {
-  const [history, setHistory] = useState<VerificationHistory[]>([])
-  const [loading, setLoading] = useState(true)
+  const { verifications } = useMockStore()
+  const toast = useToast()
   const [viewMode, setViewMode] = useState<'timeline' | 'table'>('timeline')
-
-  useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const data = await mockVerifierAPI.getVerificationHistory()
-        setHistory(data)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadHistory()
-  }, [])
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -55,13 +43,11 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-8">Loading history...</div>
-      ) : viewMode === 'timeline' ? (
+      {viewMode === 'timeline' ? (
         <Card className="border-cyan-500/20">
           <CardContent className="pt-6">
             <div className="space-y-6">
-              {history.map((item, index) => (
+              {verifications.map((item, index) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, x: -20 }}
@@ -69,17 +55,14 @@ export default function HistoryPage() {
                   transition={{ delay: index * 0.1 }}
                   className="flex gap-4"
                 >
-                  {/* Timeline Dot */}
                   <div className="flex flex-col items-center">
                     <div
                       className={`w-4 h-4 rounded-full ${
                         item.result === 'success' ? 'bg-emerald-500' : 'bg-red-500'
                       }`}
                     />
-                    {index < history.length - 1 && <div className="w-0.5 h-12 bg-gradient-to-b from-gray-700 to-gray-800 mt-2" />}
+                    {index < verifications.length - 1 && <div className="w-0.5 h-12 bg-gradient-to-b from-gray-700 to-gray-800 mt-2" />}
                   </div>
-
-                  {/* Content */}
                   <div className="flex-1 pb-4">
                     <div className="flex items-start justify-between">
                       <div>
@@ -109,7 +92,7 @@ export default function HistoryPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {history.map((item) => (
+                  {verifications.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-900/50 transition-colors">
                       <td className="px-6 py-4 text-white">{item.action}</td>
                       <td className="px-6 py-4 text-gray-300 font-mono text-sm">{item.proofId}</td>
@@ -141,7 +124,10 @@ export default function HistoryPage() {
 
       {/* Export Button */}
       <div className="flex justify-end">
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors">
+        <button
+          onClick={() => toast.success('Export Started', 'History report exported.')}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+        >
           <Download className="w-4 h-4" />
           Export Report
         </button>

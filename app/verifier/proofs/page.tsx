@@ -1,53 +1,30 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Download, Eye, CheckCircle, AlertCircle, Eye as EyeIcon } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
-import { Button } from '@/components/ds/button'
-import { mockVerifierAPI } from '@/lib/verifier/mock-data'
-import { Proof } from '@/types/verifier'
+import { Search, Download, CheckCircle, AlertCircle, Eye as EyeIcon } from 'lucide-react'
+import { Card, CardContent } from '@/components/ds/card'
+import { useMockStore } from '@/stores/mock-store'
+import { useToast } from '@/hooks/use-toast'
 
 export default function ProofsPage() {
-  const [proofs, setProofs] = useState<Proof[]>([])
-  const [filteredProofs, setFilteredProofs] = useState<Proof[]>([])
-  const [loading, setLoading] = useState(true)
+  const { proofs } = useMockStore()
+  const toast = useToast()
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  useEffect(() => {
-    const loadProofs = async () => {
-      try {
-        const data = await mockVerifierAPI.getProofs()
-        setProofs(data)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadProofs()
-  }, [])
-
-  useEffect(() => {
-    let filtered = proofs
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (p) =>
-          p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.auditorName.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    }
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((p) => p.status === statusFilter)
-    }
-
-    setFilteredProofs(filtered)
-    setCurrentPage(1)
-  }, [proofs, searchTerm, statusFilter])
+  const filteredProofs = proofs.filter((p) => {
+    const matchesSearch =
+      p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.auditName.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = statusFilter === 'all' || p.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
   const paginatedProofs = filteredProofs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   const totalPages = Math.ceil(filteredProofs.length / itemsPerPage)
@@ -67,7 +44,7 @@ export default function ProofsPage() {
               <Search className="absolute left-3 top-3 w-5 h-5 text-gray-500" />
               <input
                 type="text"
-                placeholder="Search by proof ID, company, or auditor..."
+                placeholder="Search by proof ID, company, or audit name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white placeholder-gray-500 focus:border-cyan-500 focus:outline-none"
@@ -75,10 +52,13 @@ export default function ProofsPage() {
             </div>
 
             <div className="flex gap-2 flex-wrap">
-              {['all', 'valid', 'invalid', 'unverified'].map((status) => (
+              {['all', 'verified', 'generating', 'failed'].map((status) => (
                 <button
                   key={status}
-                  onClick={() => setStatusFilter(status)}
+                  onClick={() => {
+                    setStatusFilter(status)
+                    setCurrentPage(1)
+                  }}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     statusFilter === status
                       ? 'bg-cyan-500 text-white'
@@ -102,20 +82,14 @@ export default function ProofsPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Proof ID</th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Company</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Auditor</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Audit Type</th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Status</th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Blockchain</th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : paginatedProofs.length === 0 ? (
+                {paginatedProofs.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
                       No proofs found
@@ -126,13 +100,13 @@ export default function ProofsPage() {
                     <tr key={proof.id} className="hover:bg-gray-900/50 transition-colors">
                       <td className="px-6 py-4 text-white font-mono text-sm">{proof.id}</td>
                       <td className="px-6 py-4 text-gray-300">{proof.companyName}</td>
-                      <td className="px-6 py-4 text-gray-300">{proof.auditorName}</td>
+                      <td className="px-6 py-4 text-gray-300">{proof.auditName}</td>
                       <td className="px-6 py-4">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            proof.status === 'valid'
+                            proof.status === 'verified'
                               ? 'bg-emerald-500/20 text-emerald-400'
-                              : proof.status === 'invalid'
+                              : proof.status === 'failed'
                                 ? 'bg-red-500/20 text-red-400'
                                 : 'bg-yellow-500/20 text-yellow-400'
                           }`}
@@ -141,7 +115,7 @@ export default function ProofsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        {proof.blockchainStatus === 'confirmed' ? (
+                        {proof.blockchainTxHash ? (
                           <CheckCircle className="w-5 h-5 text-emerald-500" />
                         ) : (
                           <AlertCircle className="w-5 h-5 text-yellow-500" />
@@ -149,10 +123,16 @@ export default function ProofsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
-                          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-cyan-400">
+                          <button
+                            onClick={() => toast.info('View Proof', `Viewing details for ${proof.id}`)}
+                            className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-cyan-400"
+                          >
                             <EyeIcon className="w-4 h-4" />
                           </button>
-                          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-cyan-400">
+                          <button
+                            onClick={() => toast.success('Download Started', `Proof ${proof.id} package is being downloaded.`)}
+                            className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-cyan-400"
+                          >
                             <Download className="w-4 h-4" />
                           </button>
                         </div>

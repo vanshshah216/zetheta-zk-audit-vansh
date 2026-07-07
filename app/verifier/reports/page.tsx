@@ -6,8 +6,10 @@ import { Download, FileText, TrendingUp, CheckCircle, AlertCircle } from 'lucide
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { mockVerifierAPI } from '@/lib/verifier/mock-data'
 import { VerificationReport } from '@/types/verifier'
+import { useToast } from '@/hooks/use-toast'
 
 export default function ReportsPage() {
+  const toast = useToast()
   const [report, setReport] = useState<VerificationReport | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -39,16 +41,23 @@ export default function ReportsPage() {
           <p className="text-gray-400">Generate and view verification reports</p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors">
+          <button
+            onClick={() => toast.success('PDF Exported', 'Verification report PDF is being prepared.')}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+          >
             <Download className="w-4 h-4" />
             Export PDF
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-900/50 transition-colors">
+          <button
+            onClick={() => toast.success('CSV Exported', 'Verification data CSV is being prepared.')}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-900/50 transition-colors"
+          >
             <Download className="w-4 h-4" />
             Export CSV
           </button>
         </div>
       </div>
+
 
       {/* Report Summary */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

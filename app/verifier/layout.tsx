@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { logout } from '@/lib/auth-api'
 import {
   LayoutDashboard,
   CheckCircle,
@@ -29,9 +28,8 @@ export default function VerifierLayout({ children }: { children: React.ReactNode
   const pathname = usePathname()
   const router = useRouter()
 
-  const handleLogout = async () => {
-    await logout()
-    router.push('/')
+  const handleLogout = () => {
+    router.push('/auth/logout')
   }
 
   const navigationItems = [

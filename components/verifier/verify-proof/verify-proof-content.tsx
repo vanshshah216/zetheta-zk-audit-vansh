@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, Play, RotateCcw, CheckCircle, AlertCircle, Clock, Zap } from 'lucide-react'
+import { Play, RotateCcw, CheckCircle, Clock, Zap } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
 import { mockVerifierAPI } from '@/lib/verifier/mock-data'
+import { useMockStore } from '@/stores/mock-store'
+import { useToast } from '@/hooks/use-toast'
 
 type VerificationStep = 'idle' | 'validating-proof' | 'verifying-hash' | 'checking-blockchain' | 'validating-signature' | 'compliance-check' | 'completed' | 'failed'
 
@@ -14,10 +16,12 @@ const steps = [
   { id: 'verifying-hash', label: 'Verify Hash', duration: 2 },
   { id: 'checking-blockchain', label: 'Check Blockchain', duration: 3 },
   { id: 'validating-signature', label: 'Validate Signature', duration: 2 },
-  { id: 'compliance-check', label: 'Compliance Check', duration: 2 },
+  { id: 'compliance-check', label: 'Compliance Validation', duration: 2 },
 ]
 
 export default function VerifyProofContent() {
+  const toast = useToast()
+  const { proofs, addVerification } = useMockStore()
   const [proofId, setProofId] = useState('')
   const [hash, setHash] = useState('')
   const [certificateId, setCertificateId] = useState('')
@@ -35,6 +39,7 @@ export default function VerifyProofContent() {
   const handleVerifyProof = async () => {
     if (!proofId || !hash) {
       addLog('Error: Proof ID and Hash are required', 'error')
+      toast.error('Missing Fields', 'Proof ID and Hash are required.')
       return
     }
 
@@ -46,19 +51,31 @@ export default function VerifyProofContent() {
     for (const step of steps) {
       setCurrentStep(step.id as VerificationStep)
       addLog(`${step.label}...`, 'info')
-
       await new Promise((resolve) => setTimeout(resolve, step.duration * 1000))
-
       setCompletedSteps((prev) => [...prev, step.id])
       addLog(`${step.label} completed successfully`, 'success')
     }
 
-    // Final verification
     setCurrentStep('completed')
     addLog('Proof verification completed successfully', 'success')
 
     const verificationResult = await mockVerifierAPI.verifyProof(proofId, hash)
     setResult(verificationResult)
+
+    // Persist to shared store
+    addVerification({
+      id: `ver-${Date.now()}`,
+      proofId,
+      proofHash: hash,
+      action: 'Proof Verified',
+      result: 'success',
+      timestamp: new Date().toISOString(),
+      details: 'ZK proof verified. All validation steps passed.',
+      certificateId: certificateId || undefined,
+      blockchainHash: blockchainHash || verificationResult?.blockchainHash || undefined,
+    })
+
+    toast.success('Proof Verified!', 'Zero-knowledge proof is valid. Entry added to history.')
   }
 
   const handleReset = () => {
@@ -73,15 +90,26 @@ export default function VerifyProofContent() {
   }
 
   const handleAutoFill = () => {
-    setProofId('proof-001')
-    setHash('0x8f4c3f9a2b1e7d6c5a4b3c2d1e0f9a8b')
-    setCertificateId('cert-001')
-    setBlockchainHash('0xabc123def456')
+    // Use first proof from shared store if available
+    const firstProof = proofs[0]
+    if (firstProof) {
+      setProofId(firstProof.id)
+      setHash(firstProof.hash)
+      setBlockchainHash(firstProof.blockchainTxHash)
+      setCertificateId(`cert-${firstProof.auditId}`)
+    } else {
+      setProofId('proof-001')
+      setHash('0x8f4c3f9a2b1e7d6c5a4b3c2d1e0f9a8b')
+      setCertificateId('cert-001')
+      setBlockchainHash('0xabc123def456')
+    }
     setLogs([])
     setResult(null)
+    toast.info('Auto-filled', 'Demo data has been populated.')
   }
 
   const progressPercentage = (completedSteps.length / steps.length) * 100
+
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">

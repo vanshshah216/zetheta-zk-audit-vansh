@@ -1,17 +1,23 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, ChevronRight, ChevronLeft, CheckCircle, AlertCircle, X } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
 import { mockAPI } from '@/lib/company/mock-data'
+import { useMockStore, MockAuditRequest } from '@/stores/mock-store'
+import { useToast } from '@/hooks/use-toast'
 
 const AUDIT_CATEGORIES = ['Information Security', 'Compliance', 'Data Protection', 'Healthcare Compliance']
 const INDUSTRIES = ['Technology', 'Cloud Services', 'Healthcare IT', 'Finance', 'Other']
 const COMPLIANCE_STANDARDS = ['ISO27001', 'SOC2', 'GDPR', 'HIPAA', 'PCI-DSS']
 
 export function RequestAuditForm() {
+  const router = useRouter()
+  const toast = useToast()
+  const { submitAuditRequest } = useMockStore()
   const [step, setStep] = useState(1)
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
@@ -94,16 +100,30 @@ export function RequestAuditForm() {
 
     setLoading(true)
     try {
-      const uploadedFiles = await mockAPI.uploadFiles(files)
-      const audit = await mockAPI.createAudit({
-        ...formData,
-        files: uploadedFiles,
-      })
+      // Save into shared mock store so auditor sees it
+      const newRequest: MockAuditRequest = {
+        id: `req-${Date.now()}`,
+        companyId: 'comp-current',
+        companyName: 'Your Company',
+        auditType: formData.title || formData.category || 'Compliance Audit',
+        budget: Number(formData.budget) || 10000,
+        priority: formData.priority as MockAuditRequest['priority'],
+        deadline: formData.deadline
+          ? new Date(formData.deadline).toISOString()
+          : new Date(Date.now() + 30 * 864e5).toISOString(),
+        complianceStandard: formData.standards[0] || 'ISO27001',
+        description: formData.description,
+        status: 'pending',
+        documentsCount: files.length,
+        industry: formData.industry,
+        createdAt: new Date().toISOString(),
+      }
+      submitAuditRequest(newRequest)
+      toast.success('Audit Request Submitted!', 'Your request is now visible to auditors.')
       setSubmitted(true)
-      setTimeout(() => {
-        window.location.href = '/company/my-audits'
-      }, 2000)
+      setTimeout(() => router.push('/company/my-audits'), 1800)
     } catch (error) {
+      toast.error('Submission Failed', 'Please try again.')
     } finally {
       setLoading(false)
     }

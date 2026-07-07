@@ -6,8 +6,10 @@ import { DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, Download } from '
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
 import { mockEarnings } from '@/lib/auditor/mock-data'
+import { useToast } from '@/hooks/use-toast'
 
 export default function EarningsPage() {
+  const toast = useToast()
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -167,7 +169,10 @@ export default function EarningsPage() {
 
       {/* Withdraw Button */}
       <motion.div variants={itemVariants}>
-        <Button className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold text-lg">
+        <Button
+          className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold text-lg"
+          onClick={() => toast.success('Withdrawal Initiated', 'Your funds have been queued for withdrawal.')}
+        >
           <DollarSign className="w-5 h-5 mr-2" />
           Withdraw Funds
         </Button>

@@ -1,27 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Share2, Shield, Calendar, CheckCircle, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
-import { mockVerifierAPI } from '@/lib/verifier/mock-data'
-import { Certificate } from '@/types/verifier'
+import { useMockStore } from '@/stores/mock-store'
+import { useToast } from '@/hooks/use-toast'
 
 export default function CertificatesPage() {
-  const [certificates, setCertificates] = useState<Certificate[]>([])
-  const [loading, setLoading] = useState(true)
+  const { certificates } = useMockStore()
+  const toast = useToast()
 
-  useEffect(() => {
-    const loadCertificates = async () => {
-      try {
-        const data = await mockVerifierAPI.getCertificates()
-        setCertificates(data)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadCertificates()
-  }, [])
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -30,8 +18,8 @@ export default function CertificatesPage() {
         <p className="text-gray-400">Manage and verify digital compliance certificates</p>
       </div>
 
-      {loading ? (
-        <div className="text-center py-8">Loading certificates...</div>
+      {certificates.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">No certificates available.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {certificates.map((cert) => (
@@ -42,15 +30,15 @@ export default function CertificatesPage() {
               className="group"
             >
               <Card className={`border-cyan-500/20 hover:border-cyan-500/40 transition-all ${
-                cert.status === 'expired' ? 'opacity-75' : ''
+                cert.status === 'revoked' ? 'opacity-75' : ''
               }`}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-white text-lg">{cert.number}</CardTitle>
-                      <CardDescription>{cert.organization}</CardDescription>
+                      <CardTitle className="text-white text-lg">{cert.certificateNumber}</CardTitle>
+                      <CardDescription>{cert.companyName}</CardDescription>
                     </div>
-                    {cert.verificationStatus === 'verified' ? (
+                    {cert.status === 'issued' ? (
                       <CheckCircle className="w-6 h-6 text-emerald-500" />
                     ) : (
                       <AlertCircle className="w-6 h-6 text-yellow-500" />
@@ -59,16 +47,14 @@ export default function CertificatesPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {/* Standard */}
                   <div className="flex items-center gap-2">
                     <Shield className="w-5 h-5 text-cyan-400" />
                     <div>
                       <p className="text-xs text-gray-400">Standard</p>
-                      <p className="text-white font-medium">{cert.standard}</p>
+                      <p className="text-white font-medium">{cert.complianceStandard}</p>
                     </div>
                   </div>
 
-                  {/* Dates */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-blue-400" />
@@ -81,35 +67,33 @@ export default function CertificatesPage() {
                       <Calendar className="w-5 h-5 text-purple-400" />
                       <div>
                         <p className="text-xs text-gray-400">Expires</p>
-                        <p className={`text-sm ${cert.status === 'expired' ? 'text-red-400' : 'text-white'}`}>
-                          {new Date(cert.expiryDate).toLocaleDateString()}
-                        </p>
+                        <p className="text-white text-sm">{new Date(cert.expiryDate).toLocaleDateString()}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Status Badge */}
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-700">
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                        cert.status === 'valid'
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : cert.status === 'expired'
-                            ? 'bg-red-500/20 text-red-400'
-                            : 'bg-yellow-500/20 text-yellow-400'
-                      }`}
-                    >
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                      cert.status === 'issued'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-red-500/20 text-red-400'
+                    }`}>
                       {cert.status.toUpperCase()}
                     </span>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex gap-2 pt-2">
-                    <button className="flex-1 py-2 px-3 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors flex items-center justify-center gap-2 text-sm">
+                    <button
+                      onClick={() => toast.success('Download Started', `Certificate ${cert.certificateNumber} PDF ready.`)}
+                      className="flex-1 py-2 px-3 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
                       <Download className="w-4 h-4" />
                       Download
                     </button>
-                    <button className="flex-1 py-2 px-3 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-900/50 transition-colors flex items-center justify-center gap-2 text-sm">
+                    <button
+                      onClick={() => toast.success('Link Copied!', `Shareable link for ${cert.certificateNumber} copied.`)}
+                      className="flex-1 py-2 px-3 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-900/50 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
                       <Share2 className="w-4 h-4" />
                       Share
                     </button>

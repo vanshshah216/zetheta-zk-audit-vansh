@@ -219,7 +219,36 @@ export async function connectWallet(data: WalletConnectionData): Promise<{ conne
 
 export async function logout(): Promise<void> {
   mockSession = null;
-  localStorage.removeItem('authSession');
+
+  if (typeof window !== 'undefined') {
+    // Clear all known auth keys
+    const knownKeys = [
+      'authSession',
+      'zka-auth-storage',
+      'zk-auth-storage',
+      'pendingEmailVerification',
+    ];
+    knownKeys.forEach((key) => localStorage.removeItem(key));
+
+    // Sweep any key matching auth/session/token/user
+    const authPatterns = /auth|session|token|user/i;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && authPatterns.test(key)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+    sessionStorage.clear();
+
+    // Also reset Zustand store if available
+    try {
+      const { useAuthStore } = await import('@/stores/auth-store');
+      useAuthStore.getState().logout();
+    } catch {
+      // silently ignore if store is not available
+    }
+  }
 }
 
 export function getStoredSession(): AuthSession | null {

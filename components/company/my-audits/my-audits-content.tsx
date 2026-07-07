@@ -2,55 +2,46 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Search, Download, Filter, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
-import { mockAPI } from '@/lib/company/mock-data'
-import { Audit } from '@/types/company'
+import { useMockStore } from '@/stores/mock-store'
+import { useToast } from '@/hooks/use-toast'
 import { motion } from 'framer-motion'
 
 const ITEMS_PER_PAGE = 10
 
 export function MyAuditsContent() {
-  const [audits, setAudits] = useState<Audit[]>([])
+  const router = useRouter()
+  const toast = useToast()
+  const { auditRequests } = useMockStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [sortBy, setSortBy] = useState<'date' | 'status' | 'progress'>('date')
 
-  useMemo(() => {
-    const loadAudits = async () => {
-      const data = await mockAPI.getAudits()
-      setAudits(data)
-    }
-    loadAudits()
-  }, [])
-
-  // Filter and search
+  // Filter and search — map MockAuditRequest fields
   const filteredAudits = useMemo(() => {
-    let result = audits.filter((audit) => {
-      const matchesSearch =
-        audit.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        audit.id.includes(searchQuery)
+    let result = auditRequests.filter((audit) => {
+      const searchTarget = `${audit.companyName} ${audit.auditType}`.toLowerCase()
+      const matchesSearch = searchTarget.includes(searchQuery.toLowerCase()) || audit.id.includes(searchQuery)
       const matchesStatus = statusFilter === 'all' || audit.status === statusFilter
       const matchesPriority = priorityFilter === 'all' || audit.priority === priorityFilter
-
       return matchesSearch && matchesStatus && matchesPriority
     })
 
-    // Sort
     if (sortBy === 'date') {
       result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     } else if (sortBy === 'status') {
-      const statusOrder = { pending: 0, 'in-progress': 1, completed: 2, failed: 3 }
-      result.sort((a, b) => statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder])
-    } else if (sortBy === 'progress') {
-      result.sort((a, b) => b.progress - a.progress)
+      const statusOrder: Record<string, number> = { pending: 0, 'in-progress': 1, accepted: 2, completed: 3, rejected: 4 }
+      result.sort((a, b) => (statusOrder[a.status] ?? 0) - (statusOrder[b.status] ?? 0))
     }
 
     return result
-  }, [audits, searchQuery, statusFilter, priorityFilter, sortBy])
+  }, [auditRequests, searchQuery, statusFilter, priorityFilter, sortBy])
+
 
   // Pagination
   const totalPages = Math.ceil(filteredAudits.length / ITEMS_PER_PAGE)
@@ -89,25 +80,18 @@ export function MyAuditsContent() {
 
   const handleExportCSV = () => {
     const csv = [
-      ['Audit ID', 'Title', 'Status', 'Priority', 'Progress', 'Deadline'],
-      ...filteredAudits.map((audit) => [
-        audit.id,
-        audit.title,
-        audit.status,
-        audit.priority,
-        `${audit.progress}%`,
-        audit.deadline ? new Date(audit.deadline).toLocaleDateString() : 'N/A',
-      ]),
-    ]
-      .map((row) => row.join(','))
-      .join('\n')
-
+      ['ID', 'Company', 'Audit Type', 'Status', 'Priority', 'Budget', 'Deadline'].join(','),
+      ...filteredAudits.map((a) =>
+        [a.id, a.companyName, a.auditType, a.status, a.priority, a.budget, new Date(a.deadline).toLocaleDateString()].join(',')
+      ),
+    ].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'audits.csv'
-    a.click()
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'my-audits.csv'
+    anchor.click()
+    toast.success('Export Started', 'CSV download initiated.')
   }
 
   return (
@@ -265,9 +249,14 @@ export function MyAuditsContent() {
                       <td className="py-3 px-4 font-mono text-xs text-muted-foreground">
                         {audit.id}
                       </td>
-                      <td className="py-3 px-4 font-medium">{audit.title}</td>
+                      <td className="py-3 px-4 font-medium">
+                        <div>
+                          <p>{audit.auditType}</p>
+                          <p className="text-xs text-muted-foreground">{audit.companyName}</p>
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-muted-foreground">
-                        {audit.assignedAuditor || 'Unassigned'}
+                        {audit.status === 'accepted' ? 'Assigned' : 'Pending Assignment'}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(audit.status)}`}>
@@ -284,10 +273,12 @@ export function MyAuditsContent() {
                           <div className="w-16 h-2 bg-card rounded-full overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-cyan to-blue transition-all"
-                              style={{ width: `${audit.progress}%` }}
+                              style={{ width: audit.status === 'accepted' ? '25%' : audit.status === 'completed' ? '100%' : '0%' }}
                             />
                           </div>
-                          <span className="text-xs font-medium">{audit.progress}%</span>
+                          <span className="text-xs font-medium">
+                            {audit.status === 'completed' ? '100%' : audit.status === 'accepted' ? '25%' : '0%'}
+                          </span>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">

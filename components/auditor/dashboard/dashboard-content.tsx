@@ -5,6 +5,7 @@ import { LineChart, Line, PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianG
 import { ArrowUpRight, ArrowDownRight, TrendingUp, CheckCircle, AlertCircle, Clock, Star, Zap } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
+import { useRouter } from 'next/navigation'
 import { mockDashboardMetrics, mockAnalytics } from '@/lib/auditor/mock-data'
 
 const containerVariants = {
@@ -31,6 +32,7 @@ export function DashboardContent() {
   const metrics = mockDashboardMetrics
   const analytics = mockAnalytics
   const COLORS = ['#00E5FF', '#2563EB', '#10B981', '#7C3AED', '#ec4899']
+  const router = useRouter()
 
   return (
     <motion.div
@@ -236,16 +238,28 @@ export function DashboardContent() {
             <CardDescription>Common tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button className="w-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30">
+            <Button 
+              className="w-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30"
+              onClick={() => router.push('/auditor/incoming-requests')}
+            >
               Review Requests
             </Button>
-            <Button className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30">
+            <Button 
+              className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30"
+              onClick={() => router.push('/auditor/generate-proof')}
+            >
               Generate Proof
             </Button>
-            <Button className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30">
+            <Button 
+              className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30"
+              onClick={() => router.push('/auditor/certificates')}
+            >
               Issue Certificate
             </Button>
-            <Button className="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30">
+            <Button 
+              className="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30"
+              onClick={() => router.push('/auditor/analytics')}
+            >
               View Analytics
             </Button>
           </CardContent>

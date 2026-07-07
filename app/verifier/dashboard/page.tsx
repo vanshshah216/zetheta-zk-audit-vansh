@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import DashboardContent from '@/components/verifier/dashboard/dashboard-content'
 import { CardSkeleton } from '@/components/skeletons/card-skeleton'
+import { ProtectedRoute } from '@/components/auth/protected-route'
 
 function VerifierDashboardSkeleton() {
   return (
@@ -11,11 +12,13 @@ function VerifierDashboardSkeleton() {
         <div className="h-8 bg-muted rounded w-64 animate-pulse" />
         <div className="h-4 bg-muted rounded w-96 animate-pulse" />
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
           <CardSkeleton key={i} />
         ))}
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CardSkeleton variant="chart" />
         <CardSkeleton variant="chart" />
@@ -26,8 +29,10 @@ function VerifierDashboardSkeleton() {
 
 export default function VerifierDashboard() {
   return (
-    <Suspense fallback={<VerifierDashboardSkeleton />}>
-      <DashboardContent />
-    </Suspense>
+    <ProtectedRoute requiredRole="investor">
+      <Suspense fallback={<VerifierDashboardSkeleton />}>
+        <DashboardContent />
+      </Suspense>
+    </ProtectedRoute>
   )
 }

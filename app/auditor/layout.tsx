@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { logout } from '@/lib/auth-api'
 import {
   LayoutDashboard,
   Inbox,
@@ -31,9 +30,8 @@ export default function AuditorLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname()
   const router = useRouter()
 
-  const handleLogout = async () => {
-    await logout()
-    router.push('/')
+  const handleLogout = () => {
+    router.push('/auth/logout')
   }
 
   const navigationItems = [
@@ -185,7 +183,10 @@ export default function AuditorLayout({ children }: { children: React.ReactNode 
                   <Link href="/auditor/settings" className="block px-4 py-2 hover:bg-card/50 rounded text-sm">
                     Settings
                   </Link>
-                  <button className="w-full text-left px-4 py-2 hover:bg-red-950/30 rounded text-sm text-red-400">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 hover:bg-red-950/30 rounded text-sm text-red-400"
+                  >
                     Logout
                   </button>
                 </div>
