@@ -1,0 +1,203 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import { Search, Download, Eye, CheckCircle, AlertCircle, Eye as EyeIcon } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
+import { Button } from '@/components/ds/button'
+import { mockVerifierAPI } from '@/lib/verifier/mock-data'
+import { Proof } from '@/types/verifier'
+
+export default function ProofsPage() {
+  const [proofs, setProofs] = useState<Proof[]>([])
+  const [filteredProofs, setFilteredProofs] = useState<Proof[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
+  useEffect(() => {
+    const loadProofs = async () => {
+      try {
+        const data = await mockVerifierAPI.getProofs()
+        setProofs(data)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProofs()
+  }, [])
+
+  useEffect(() => {
+    let filtered = proofs
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (p) =>
+          p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.auditorName.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((p) => p.status === statusFilter)
+    }
+
+    setFilteredProofs(filtered)
+    setCurrentPage(1)
+  }, [proofs, searchTerm, statusFilter])
+
+  const paginatedProofs = filteredProofs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const totalPages = Math.ceil(filteredProofs.length / itemsPerPage)
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-white mb-2">Proof Explorer</h1>
+        <p className="text-gray-400">View and manage all submitted proofs</p>
+      </div>
+
+      {/* Search and Filters */}
+      <Card className="border-cyan-500/20">
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 w-5 h-5 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search by proof ID, company, or auditor..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white placeholder-gray-500 focus:border-cyan-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex gap-2 flex-wrap">
+              {['all', 'valid', 'invalid', 'unverified'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    statusFilter === status
+                      ? 'bg-cyan-500 text-white'
+                      : 'border border-gray-700 text-gray-300 hover:border-gray-600'
+                  }`}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card className="border-cyan-500/20 overflow-hidden">
+        <CardContent className="pt-6 p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-900/50 border-b border-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Proof ID</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Company</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Auditor</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Status</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Blockchain</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-400">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
+                      Loading...
+                    </td>
+                  </tr>
+                ) : paginatedProofs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
+                      No proofs found
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedProofs.map((proof) => (
+                    <tr key={proof.id} className="hover:bg-gray-900/50 transition-colors">
+                      <td className="px-6 py-4 text-white font-mono text-sm">{proof.id}</td>
+                      <td className="px-6 py-4 text-gray-300">{proof.companyName}</td>
+                      <td className="px-6 py-4 text-gray-300">{proof.auditorName}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            proof.status === 'valid'
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : proof.status === 'invalid'
+                                ? 'bg-red-500/20 text-red-400'
+                                : 'bg-yellow-500/20 text-yellow-400'
+                          }`}
+                        >
+                          {proof.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {proof.blockchainStatus === 'confirmed' ? (
+                          <CheckCircle className="w-5 h-5 text-emerald-500" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-yellow-500" />
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-cyan-400">
+                            <EyeIcon className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-cyan-400">
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-600 disabled:opacity-50"
+          >
+            Previous
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`px-4 py-2 rounded-lg ${
+                currentPage === page
+                  ? 'bg-cyan-500 text-white'
+                  : 'border border-gray-700 text-gray-300 hover:border-gray-600'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-600 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </motion.div>
+  )
+}
