@@ -52,7 +52,7 @@ export function RequestAuditForm() {
       if (!formData.deadline) newErrors.deadline = 'Deadline is required'
       if (formData.budget && isNaN(Number(formData.budget))) newErrors.budget = 'Budget must be a number'
     } else if (stepNum === 3) {
-      if (files.length === 0) newErrors.files = 'Upload at least one file'
+      // File upload is optional for demo
     }
 
     setErrors(newErrors)
