@@ -1,14 +1,48 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Share2, Shield, Calendar, CheckCircle, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
-import { useMockStore } from '@/stores/mock-store'
+import { useMockStore, MockCertificate } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 
 export default function CertificatesPage() {
-  const { certificates } = useMockStore()
+  const { certificates: mockCerts } = useMockStore()
   const toast = useToast()
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbCertificates, setDbCertificates] = useState<MockCertificate[]>([])
+
+  useEffect(() => {
+    const fetchCerts = async () => {
+      setIsLoading(true)
+      try {
+        const certs = await supabaseAuditService.getCertificates()
+        const mappedCerts = certs.map((c) => ({
+          id: c.id,
+          proofId: '', // Mock fallback
+          auditId: c.audit_id,
+          companyName: c.company_name,
+          auditType: c.audit_type,
+          complianceStandard: c.compliance_standard,
+          certificateNumber: 'N/A', // Usually generated locally in mock
+          issueDate: c.issue_date,
+          expiryDate: c.expiry_date,
+          status: c.status as any,
+        }))
+        setDbCertificates(mappedCerts)
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to mock store', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchCerts()
+  }, [])
+
+  const certificates = dbCertificates.length > 0 ? dbCertificates : mockCerts
 
 
   return (
@@ -17,6 +51,12 @@ export default function CertificatesPage() {
         <h1 className="text-3xl font-bold text-white mb-2">Compliance Certificates</h1>
         <p className="text-gray-400">Manage and verify digital compliance certificates</p>
       </div>
+
+      {isLoading && (
+        <div className="text-sm text-cyan-400 bg-cyan-900/20 border border-cyan-500/20 p-2 rounded text-center animate-pulse">
+          Loading certificates...
+        </div>
+      )}
 
       {certificates.length === 0 ? (
         <div className="text-center py-12 text-gray-400">No certificates available.</div>

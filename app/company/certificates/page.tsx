@@ -1,15 +1,52 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Share2, Award, Calendar } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
-import { useMockStore } from '@/stores/mock-store'
+import { useMockStore, MockCertificate } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 
 export default function CertificatesPage() {
-  const { certificates } = useMockStore()
+  const { certificates: mockCerts } = useMockStore()
   const toast = useToast()
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbCertificates, setDbCertificates] = useState<MockCertificate[]>([])
+
+  useEffect(() => {
+    const fetchCerts = async () => {
+      setIsLoading(true)
+      try {
+        const profile = await supabaseAuditService.getProfileByEmail('company@example.com')
+        if (profile) {
+          const certs = await supabaseAuditService.getCertificatesByCompany(profile.id)
+          const mappedCerts = certs.map((c) => ({
+            id: c.id,
+            proofId: '', // Mock fallback
+            auditId: c.audit_id,
+            companyName: c.company_name,
+            auditType: c.audit_type,
+            complianceStandard: c.compliance_standard,
+            certificateNumber: 'N/A',
+            issueDate: c.issue_date,
+            expiryDate: c.expiry_date,
+            status: c.status as any,
+          }))
+          setDbCertificates(mappedCerts)
+        }
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to mock store', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchCerts()
+  }, [])
+
+  const certificates = dbCertificates.length > 0 ? dbCertificates : mockCerts
 
 
   return (
@@ -22,6 +59,12 @@ export default function CertificatesPage() {
         <h1 className="text-3xl font-bold mb-2">Certificates</h1>
         <p className="text-muted-foreground">Download and share your compliance certificates</p>
       </div>
+
+      {isLoading && (
+        <div className="text-sm text-cyan-400 bg-cyan-900/20 border border-cyan-500/20 p-2 rounded text-center animate-pulse">
+          Loading certificates...
+        </div>
+      )}
 
       {/* Certificates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

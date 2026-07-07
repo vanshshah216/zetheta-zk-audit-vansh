@@ -1,17 +1,50 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Copy, CheckCircle, ExternalLink, Search } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
-import { useMockStore } from '@/stores/mock-store'
+import { useMockStore, MockProof } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 
 export default function ProofVaultPage() {
-  const { proofs } = useMockStore()
+  const { proofs: mockProofs } = useMockStore()
   const toast = useToast()
   const [searchQuery, setSearchQuery] = useState('')
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbProofs, setDbProofs] = useState<MockProof[]>([])
+
+  useEffect(() => {
+    const fetchProofs = async () => {
+      setIsLoading(true)
+      try {
+        // Fetch all proofs for now for the demo
+        const p = await supabaseAuditService.getProofs()
+        const mapped = p.map((r) => ({
+          id: r.id,
+          auditId: r.audit_id,
+          auditName: r.audit_name,
+          companyName: r.company_name,
+          status: r.status as any,
+          hash: r.hash,
+          blockchainTxHash: r.blockchain_tx_hash || '',
+          generatedAt: r.generated_at,
+          verificationStatus: r.verification_status as any,
+        }))
+        setDbProofs(mapped)
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to mock store', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchProofs()
+  }, [])
+
+  const proofs = dbProofs.length > 0 ? dbProofs : mockProofs
 
   const filteredProofs = proofs.filter(
     (proof) =>
@@ -39,6 +72,12 @@ export default function ProofVaultPage() {
         <h1 className="text-3xl font-bold mb-2">Proof Vault</h1>
         <p className="text-muted-foreground">Manage and download your zero-knowledge audit proofs</p>
       </div>
+
+      {isLoading && (
+        <div className="text-sm text-cyan-400 bg-cyan-900/20 border border-cyan-500/20 p-2 rounded text-center animate-pulse">
+          Loading proofs...
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

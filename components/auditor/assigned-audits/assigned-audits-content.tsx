@@ -1,16 +1,56 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
-import { useMockStore } from '@/stores/mock-store'
+import { useMockStore, MockAuditRequest } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { ChevronRight, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 
 export function AssignedAuditsContent() {
   const router = useRouter()
   const { getAssignedAudits } = useMockStore()
-  const audits = getAssignedAudits()
+  
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbAudits, setDbAudits] = useState<MockAuditRequest[]>([])
+
+  useEffect(() => {
+    const fetchAudits = async () => {
+      setIsLoading(true)
+      try {
+        const profile = await supabaseAuditService.getProfileByEmail('auditor@example.com')
+        if (profile) {
+          const reqs = await supabaseAuditService.getAssignedAuditRequests(profile.id)
+          const mapped = reqs.map((r) => ({
+            id: r.id,
+            companyId: r.company_id,
+            companyName: r.company_name,
+            auditType: r.audit_type,
+            budget: r.budget,
+            priority: r.priority as any,
+            deadline: r.deadline,
+            complianceStandard: r.compliance_standard,
+            description: r.description,
+            status: r.status as any,
+            documentsCount: r.documents_count,
+            industry: r.industry,
+            createdAt: r.created_at,
+          }))
+          setDbAudits(mapped)
+        }
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to mock store', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchAudits()
+  }, [])
+
+  const mockAudits = getAssignedAudits()
+  const audits = dbAudits.length > 0 ? dbAudits : mockAudits
 
   const daysUntilDue = (deadline: string) =>
     Math.ceil((new Date(deadline).getTime() - Date.now()) / 864e5)
@@ -41,6 +81,11 @@ export function AssignedAuditsContent() {
       </motion.div>
 
       {/* Stats */}
+      {isLoading && (
+        <motion.div variants={itemVariants} className="text-sm text-cyan-400 bg-cyan-900/20 border border-cyan-500/20 p-2 rounded text-center animate-pulse">
+          Loading assigned audits...
+        </motion.div>
+      )}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="glass border-border/30">
           <CardContent className="pt-6">

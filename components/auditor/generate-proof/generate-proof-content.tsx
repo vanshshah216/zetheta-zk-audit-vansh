@@ -7,6 +7,7 @@ import { Upload, CheckCircle, Zap, Copy, Download, FileText } from 'lucide-react
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
 import { useMockStore, MockProof } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 
 const STEPS = [
@@ -68,6 +69,29 @@ export function GenerateProofContent() {
 
     setProofHash(ph)
     setTxHash(tx)
+
+    try {
+      await supabaseAuditService.createProof({
+        audit_id: selectedAuditId,
+        audit_name: selectedAudit?.auditType ?? 'Compliance Audit',
+        company_name: selectedAudit?.companyName ?? 'Unknown',
+        status: 'verified',
+        hash: ph,
+        blockchain_tx_hash: tx,
+        verification_status: 'verified',
+      })
+      
+      try {
+        const profile = await supabaseAuditService.getProfileByEmail('auditor@example.com')
+        if (profile) {
+          await supabaseAuditService.updateAuditRequestStatus(selectedAuditId, 'completed', profile.id)
+        }
+      } catch (e) {
+        console.warn('Failed to update audit request status to completed', e)
+      }
+    } catch (err) {
+      console.warn('Supabase create proof failed, falling back to local store only', err)
+    }
 
     // Save to shared store
     const newProof: MockProof = {

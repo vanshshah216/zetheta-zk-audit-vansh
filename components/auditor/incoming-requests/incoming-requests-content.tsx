@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Search, CheckCircle, XCircle, ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
-import { useMockStore } from '@/stores/mock-store'
+import { useMockStore, MockAuditRequest } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 
 export function IncomingRequestsContent() {
@@ -17,8 +18,44 @@ export function IncomingRequestsContent() {
   const [filterPriority, setFilterPriority] = useState('all')
   const [sortBy, setSortBy] = useState('deadline')
 
-  const requests = auditRequests
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbRequests, setDbRequests] = useState<MockAuditRequest[]>([])
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      setIsLoading(true)
+      try {
+        const reqs = await supabaseAuditService.getPendingAuditRequests()
+        const mapped = reqs.map((r) => ({
+          id: r.id,
+          companyId: r.company_id,
+          companyName: r.company_name,
+          auditType: r.audit_type,
+          budget: r.budget,
+          priority: r.priority as any,
+          deadline: r.deadline,
+          complianceStandard: r.compliance_standard,
+          description: r.description,
+          status: r.status as any,
+          documentsCount: r.documents_count,
+          industry: r.industry,
+          createdAt: r.created_at,
+        }))
+        setDbRequests(mapped)
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to mock store', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchRequests()
+  }, [])
+
+  const activeRequests = dbRequests.length > 0 ? dbRequests : auditRequests
+
+  const requests = activeRequests
     .filter((req) =>
+      req.status === 'pending' &&
       (req.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.auditType.toLowerCase().includes(searchTerm.toLowerCase())) &&
       (filterPriority === 'all' || req.priority === filterPriority)
@@ -29,8 +66,18 @@ export function IncomingRequestsContent() {
       return 0
     })
 
-  const handleAccept = (id: string, companyName: string) => {
+  const handleAccept = async (id: string, companyName: string) => {
+    try {
+      const profile = await supabaseAuditService.getProfileByEmail('auditor@example.com')
+      if (profile) {
+        await supabaseAuditService.updateAuditRequestStatus(id, 'accepted', profile.id)
+      }
+    } catch (err) {
+      console.warn('Supabase update failed, falling back to local store only', err)
+    }
+
     acceptRequest(id)
+    setDbRequests((prev) => prev.filter(r => r.id !== id))
     toast.success('Request Accepted', `Audit from ${companyName} has been accepted.`)
   }
 

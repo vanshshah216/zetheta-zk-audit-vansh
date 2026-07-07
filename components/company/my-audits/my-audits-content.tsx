@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search, Download, Filter, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
-import { useMockStore } from '@/stores/mock-store'
+import { useMockStore, MockAuditRequest } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 import { motion } from 'framer-motion'
 
@@ -22,9 +23,47 @@ export function MyAuditsContent() {
   const [currentPage, setCurrentPage] = useState(1)
   const [sortBy, setSortBy] = useState<'date' | 'status' | 'progress'>('date')
 
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbAudits, setDbAudits] = useState<MockAuditRequest[]>([])
+
+  useEffect(() => {
+    const fetchAudits = async () => {
+      setIsLoading(true)
+      try {
+        const profile = await supabaseAuditService.getProfileByEmail('company@example.com')
+        if (profile) {
+          const reqs = await supabaseAuditService.getAuditRequestsByCompany(profile.id)
+          const mapped = reqs.map((r) => ({
+            id: r.id,
+            companyId: r.company_id,
+            companyName: r.company_name,
+            auditType: r.audit_type,
+            budget: r.budget,
+            priority: r.priority as any,
+            deadline: r.deadline,
+            complianceStandard: r.compliance_standard,
+            description: r.description,
+            status: r.status as any,
+            documentsCount: r.documents_count,
+            industry: r.industry,
+            createdAt: r.created_at,
+          }))
+          setDbAudits(mapped)
+        }
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to mock store', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchAudits()
+  }, [])
+
+  const activeAudits = dbAudits.length > 0 ? dbAudits : auditRequests
+
   // Filter and search — map MockAuditRequest fields
   const filteredAudits = useMemo(() => {
-    let result = auditRequests.filter((audit) => {
+    let result = activeAudits.filter((audit) => {
       const searchTarget = `${audit.companyName} ${audit.auditType}`.toLowerCase()
       const matchesSearch = searchTarget.includes(searchQuery.toLowerCase()) || audit.id.includes(searchQuery)
       const matchesStatus = statusFilter === 'all' || audit.status === statusFilter
@@ -40,7 +79,7 @@ export function MyAuditsContent() {
     }
 
     return result
-  }, [auditRequests, searchQuery, statusFilter, priorityFilter, sortBy])
+  }, [activeAudits, searchQuery, statusFilter, priorityFilter, sortBy])
 
 
   // Pagination
@@ -96,6 +135,11 @@ export function MyAuditsContent() {
 
   return (
     <div className="space-y-6">
+      {isLoading && (
+        <div className="text-sm text-cyan-400 bg-cyan-900/20 border border-cyan-500/20 p-2 rounded text-center animate-pulse">
+          Loading audits...
+        </div>
+      )}
       {/* Filters */}
       <Card variant="glass">
         <CardContent className="pt-6">

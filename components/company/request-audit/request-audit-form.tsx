@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ds/button'
 import { mockAPI } from '@/lib/company/mock-data'
 import { useMockStore, MockAuditRequest } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 
 const AUDIT_CATEGORIES = ['Information Security', 'Compliance', 'Data Protection', 'Healthcare Compliance']
@@ -100,11 +101,44 @@ export function RequestAuditForm() {
 
     setLoading(true)
     try {
+      let profileId = 'comp-current'
+      let profCompanyName = 'Your Company'
+      
+      try {
+        const profile = await supabaseAuditService.getProfileByEmail('company@example.com')
+        if (profile) {
+          profileId = profile.id
+          profCompanyName = profile.company_name || 'Acme Corp'
+        }
+      } catch (err) {
+        console.warn('Could not fetch Supabase profile, falling back to mock values', err)
+      }
+
+      try {
+        await supabaseAuditService.createAuditRequest({
+          company_id: profileId,
+          company_name: profCompanyName,
+          audit_type: formData.title || formData.category || 'Compliance Audit',
+          budget: Number(formData.budget) || 10000,
+          priority: (formData.priority as any) || 'medium',
+          deadline: formData.deadline
+            ? new Date(formData.deadline).toISOString()
+            : new Date(Date.now() + 30 * 864e5).toISOString(),
+          compliance_standard: formData.standards[0] || 'ISO27001',
+          description: formData.description || 'N/A',
+          status: 'pending',
+          documents_count: files.length,
+          industry: formData.industry || 'Technology'
+        })
+      } catch (err) {
+        console.warn('Supabase create request failed, falling back to local store only', err)
+      }
+
       // Save into shared mock store so auditor sees it
       const newRequest: MockAuditRequest = {
         id: `req-${Date.now()}`,
-        companyId: 'comp-current',
-        companyName: 'Your Company',
+        companyId: profileId,
+        companyName: profCompanyName,
         auditType: formData.title || formData.category || 'Compliance Audit',
         budget: Number(formData.budget) || 10000,
         priority: formData.priority as MockAuditRequest['priority'],

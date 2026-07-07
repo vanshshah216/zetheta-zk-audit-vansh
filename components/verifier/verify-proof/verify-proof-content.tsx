@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ds/button'
 import { mockVerifierAPI } from '@/lib/verifier/mock-data'
 import { useMockStore } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 
 type VerificationStep = 'idle' | 'validating-proof' | 'verifying-hash' | 'checking-blockchain' | 'validating-signature' | 'compliance-check' | 'completed' | 'failed'
@@ -62,6 +63,18 @@ export default function VerifyProofContent() {
     const verificationResult = await mockVerifierAPI.verifyProof(proofId, hash)
     setResult(verificationResult)
 
+    try {
+      await supabaseAuditService.createVerificationRecord({
+        proof_id: proofId,
+        action: 'Proof Verified',
+        details: 'ZK proof verified. All validation steps passed.',
+        result: 'success'
+      })
+      await supabaseAuditService.updateProofStatus(proofId, 'verified')
+    } catch (e) {
+      console.warn('Supabase verification save failed', e)
+    }
+
     // Persist to shared store
     addVerification({
       id: `ver-${Date.now()}`,
@@ -89,7 +102,24 @@ export default function VerifyProofContent() {
     setResult(null)
   }
 
-  const handleAutoFill = () => {
+  const handleAutoFill = async () => {
+    try {
+      const p = await supabaseAuditService.getProofs()
+      const firstSupaProof = p[0]
+      if (firstSupaProof) {
+        setProofId(firstSupaProof.id)
+        setHash(firstSupaProof.hash)
+        setBlockchainHash(firstSupaProof.blockchain_tx_hash || '')
+        setCertificateId(`cert-${firstSupaProof.audit_id}`)
+        setLogs([])
+        setResult(null)
+        toast.info('Auto-filled', 'Demo data has been populated from Supabase.')
+        return
+      }
+    } catch (e) {
+      console.warn('Supabase proof fetch failed for autofill', e)
+    }
+
     // Use first proof from shared store if available
     const firstProof = proofs[0]
     if (firstProof) {

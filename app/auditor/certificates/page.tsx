@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Share2, Eye, Award, Plus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
 import { useMockStore, MockCertificate } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 
 function generateCertNumber(standard: string) {
@@ -15,8 +16,45 @@ function generateCertNumber(standard: string) {
 
 export default function CertificatesPage() {
   const toast = useToast()
-  const { certificates, proofs, issueCertificate } = useMockStore()
+  const { certificates: mockCerts, proofs: mockProofs, issueCertificate } = useMockStore()
   const [issuing, setIssuing] = useState<string | null>(null)
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbCertificates, setDbCertificates] = useState<MockCertificate[]>([])
+  const [dbProofs, setDbProofs] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchCertsAndProofs = async () => {
+      setIsLoading(true)
+      try {
+        const certs = await supabaseAuditService.getCertificates()
+        const mappedCerts = certs.map((c) => ({
+          id: c.id,
+          proofId: '', // Note: Supabase certificates might not explicitly link proof ID in our schema, fallback to audit_id match later if needed
+          auditId: c.audit_id,
+          companyName: c.company_name,
+          auditType: c.audit_type,
+          complianceStandard: c.compliance_standard,
+          certificateNumber: 'N/A',
+          issueDate: c.issue_date,
+          expiryDate: c.expiry_date,
+          status: c.status as any,
+        }))
+        setDbCertificates(mappedCerts)
+
+        const p = await supabaseAuditService.getProofs()
+        setDbProofs(p)
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to mock store', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchCertsAndProofs()
+  }, [])
+
+  const certificates = dbCertificates.length > 0 ? dbCertificates : mockCerts
+  const proofs = dbProofs.length > 0 ? dbProofs : mockProofs
 
   // Proofs that do NOT yet have certificates
   const proofsWithoutCert = proofs.filter(
@@ -29,12 +67,29 @@ export default function CertificatesPage() {
     setIssuing(proofId)
     await new Promise((r) => setTimeout(r, 1200))
 
+    try {
+      const companyId = proof.companyId || proof.company_id || 'company_id_placeholder' // Proof schema might lack company_id directly, or we can fetch it
+      await supabaseAuditService.createCertificate({
+        audit_id: proof.auditId || proof.audit_id,
+        company_id: companyId,
+        company_name: proof.companyName || proof.company_name,
+        audit_type: proof.auditType || proof.auditName || proof.audit_name,
+        issue_date: new Date().toISOString(),
+        expiry_date: new Date(Date.now() + 365 * 864e5).toISOString(),
+        compliance_standard: 'ISO27001',
+        status: 'active',
+        verification_hash: proof.hash || `hash-${Date.now()}`
+      })
+    } catch (err) {
+      console.warn('Supabase create certificate failed, falling back to local store only', err)
+    }
+
     const newCert: MockCertificate = {
       id: `cert-${Date.now()}`,
       proofId,
-      auditId: proof.auditId,
-      companyName: proof.companyName,
-      auditType: proof.auditName,
+      auditId: proof.auditId || proof.audit_id,
+      companyName: proof.companyName || proof.company_name,
+      auditType: proof.auditType || proof.auditName || proof.audit_name,
       complianceStandard: 'ISO27001',
       certificateNumber: generateCertNumber('ISO'),
       issueDate: new Date().toISOString(),
@@ -42,8 +97,9 @@ export default function CertificatesPage() {
       status: 'issued',
     }
     issueCertificate(newCert)
+    setDbCertificates((prev) => [newCert, ...prev])
     setIssuing(null)
-    toast.success('Certificate Issued!', `Certificate for ${proof.companyName} is ready.`)
+    toast.success('Certificate Issued!', `Certificate for ${proof.companyName || proof.company_name} is ready.`)
   }
 
   const handleDownload = (certNumber: string) => {
@@ -70,9 +126,19 @@ export default function CertificatesPage() {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full space-y-6">
       {/* Header */}
-      <motion.div variants={itemVariants} className="space-y-2">
-        <h2 className="text-2xl font-bold">Issued Certificates</h2>
-        <p className="text-muted-foreground">Manage compliance certificates issued to companies</p>
+      <motion.div variants={itemVariants}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Certificates</h2>
+            <p className="text-muted-foreground">Issue and manage compliance certificates</p>
+          </div>
+        </div>
+
+        {isLoading && (
+          <div className="text-sm text-cyan-400 bg-cyan-900/20 border border-cyan-500/20 p-2 rounded text-center animate-pulse">
+            Loading certificates...
+          </div>
+        )}
       </motion.div>
 
       {/* Stats */}

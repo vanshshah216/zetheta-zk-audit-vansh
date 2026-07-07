@@ -1,16 +1,46 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle, AlertCircle, Download } from 'lucide-react'
 import { Card, CardContent } from '@/components/ds/card'
-import { useMockStore } from '@/stores/mock-store'
+import { useMockStore, MockVerification } from '@/stores/mock-store'
+import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
 
 export default function HistoryPage() {
-  const { verifications } = useMockStore()
+  const { verifications: mockVerifs } = useMockStore()
   const toast = useToast()
   const [viewMode, setViewMode] = useState<'timeline' | 'table'>('timeline')
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbVerifs, setDbVerifs] = useState<MockVerification[]>([])
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setIsLoading(true)
+      try {
+        const v = await supabaseAuditService.getVerificationHistory()
+        const mapped = v.map((r) => ({
+          id: r.id,
+          proofId: r.proof_id,
+          proofHash: 'N/A', // fallback
+          action: r.action,
+          result: r.result as any,
+          timestamp: r.timestamp,
+          details: r.details,
+        }))
+        setDbVerifs(mapped)
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to mock store', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchHistory()
+  }, [])
+
+  const verifications = dbVerifs.length > 0 ? dbVerifs : mockVerifs
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -42,6 +72,12 @@ export default function HistoryPage() {
           </button>
         </div>
       </div>
+
+      {isLoading && (
+        <div className="text-sm text-cyan-400 bg-cyan-900/20 border border-cyan-500/20 p-2 rounded text-center animate-pulse">
+          Loading history...
+        </div>
+      )}
 
       {viewMode === 'timeline' ? (
         <Card className="border-cyan-500/20">
