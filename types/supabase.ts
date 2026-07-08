@@ -4,6 +4,7 @@ export interface Profile {
   role: 'audited' | 'auditor' | 'investor'
   company_name: string | null
   created_at: string
+  updated_at?: string
 }
 
 export interface AuditRequest {
@@ -21,6 +22,7 @@ export interface AuditRequest {
   industry: string
   assigned_auditor_id: string | null
   created_at: string
+  updated_at?: string
 }
 
 export interface Proof {
@@ -34,6 +36,7 @@ export interface Proof {
   generated_at: string
   verification_status: 'verified' | 'failed' | 'pending'
   created_at: string
+  updated_at?: string
 }
 
 export interface Certificate {
@@ -48,6 +51,7 @@ export interface Certificate {
   status: 'active' | 'expired' | 'revoked'
   verification_hash: string
   created_at: string
+  updated_at?: string
 }
 
 export interface VerificationHistory {
@@ -58,6 +62,7 @@ export interface VerificationHistory {
   result: 'success' | 'failure'
   timestamp: string
   created_at: string
+  updated_at?: string
 }
 
 export interface Notification {
@@ -68,6 +73,7 @@ export interface Notification {
   message: string
   read: boolean
   created_at: string
+  updated_at?: string
 }
 
 export interface Payment {
@@ -79,4 +85,5 @@ export interface Payment {
   date: string
   description: string
   created_at: string
+  updated_at?: string
 }

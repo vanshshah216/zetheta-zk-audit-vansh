@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ds/card'
 import { useMockStore, MockVerification } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
+import { downloadVerificationReportPdf } from '@/lib/pdf-export'
 
 export default function HistoryPage() {
   const { verifications: mockVerifs } = useMockStore()
@@ -41,6 +42,23 @@ export default function HistoryPage() {
   }, [])
 
   const verifications = dbVerifs.length > 0 ? dbVerifs : mockVerifs
+
+  const handleExportReport = async () => {
+    try {
+      await downloadVerificationReportPdf({
+        id: `history-${verifications[0]?.id || 'report'}`,
+        proofId: verifications[0]?.proofId || 'N/A',
+        verificationResult: verifications.some((item) => item.result === 'success') ? 'Completed' : 'Needs Review',
+        timestamp: new Date(),
+        complianceStatus: 'Compliant',
+        summary: `${verifications.length} verification events recorded.`,
+      })
+      toast.success('Export Started', 'History report PDF has been downloaded.')
+    } catch (error) {
+      console.error('History report PDF export failed', error)
+      toast.error('Export Failed', 'Unable to generate the history report PDF right now.')
+    }
+  }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -161,7 +179,7 @@ export default function HistoryPage() {
       {/* Export Button */}
       <div className="flex justify-end">
         <button
-          onClick={() => toast.success('Export Started', 'History report exported.')}
+          onClick={() => handleExportReport()}
           className="flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors"
         >
           <Download className="w-4 h-4" />

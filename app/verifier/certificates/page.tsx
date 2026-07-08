@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useMockStore, MockCertificate } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
+import { downloadCertificatePdf } from '@/lib/pdf-export'
 
 export default function CertificatesPage() {
   const { certificates: mockCerts } = useMockStore()
@@ -44,6 +45,24 @@ export default function CertificatesPage() {
 
   const certificates = dbCertificates.length > 0 ? dbCertificates : mockCerts
 
+  const handleDownload = async (cert: MockCertificate) => {
+    try {
+      await downloadCertificatePdf({
+        id: cert.id,
+        certificateNumber: cert.certificateNumber,
+        companyName: cert.companyName,
+        auditType: cert.auditType,
+        complianceStandard: cert.complianceStandard,
+        issueDate: cert.issueDate,
+        expiryDate: cert.expiryDate,
+        status: cert.status,
+      })
+      toast.success('Download Started', `Certificate ${cert.certificateNumber} PDF has been downloaded.`)
+    } catch (error) {
+      console.error('Certificate PDF download failed', error)
+      toast.error('Download Failed', 'Unable to generate the certificate PDF right now.')
+    }
+  }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -124,7 +143,7 @@ export default function CertificatesPage() {
 
                   <div className="flex gap-2 pt-2">
                     <button
-                      onClick={() => toast.success('Download Started', `Certificate ${cert.certificateNumber} PDF ready.`)}
+                      onClick={() => handleDownload(cert)}
                       className="flex-1 py-2 px-3 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors flex items-center justify-center gap-2 text-sm"
                     >
                       <Download className="w-4 h-4" />

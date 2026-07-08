@@ -39,7 +39,7 @@ export function useAuth() {
             message: 'Invalid email or password',
           })
 
-          return false
+          return null
         }
 
         storeLogin(result.user, result.session)
@@ -50,7 +50,7 @@ export function useAuth() {
           message: `Logged in as ${result.user.email}`,
         })
 
-        return true
+        return result.user
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'Login failed'
@@ -63,7 +63,7 @@ export function useAuth() {
           message,
         })
 
-        return false
+        return null
       } finally {
         setIsLoading(false)
       }

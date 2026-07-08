@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { mockVerifierAPI } from '@/lib/verifier/mock-data'
 import { VerificationReport } from '@/types/verifier'
 import { useToast } from '@/hooks/use-toast'
+import { downloadVerificationReportPdf } from '@/lib/pdf-export'
 
 export default function ReportsPage() {
   const toast = useToast()
@@ -33,6 +34,29 @@ export default function ReportsPage() {
     return <div className="text-center py-8">No report available</div>
   }
 
+  const handleExportPdf = async () => {
+    try {
+      await downloadVerificationReportPdf({
+        id: report.id,
+        proofId: report.id,
+        verificationResult: 'Completed',
+        timestamp: report.generatedAt,
+        complianceStatus: report.complianceScore >= 80 ? 'Compliant' : 'Needs Review',
+        summary: `${report.successfulVerifications} successful verifications out of ${report.totalVerifications}.`,
+        totalVerifications: report.totalVerifications,
+        successfulVerifications: report.successfulVerifications,
+        failedVerifications: report.failedVerifications,
+        complianceScore: report.complianceScore,
+        topCompanies: report.topCompanies,
+        topAuditors: report.topAuditors,
+      })
+      toast.success('PDF Exported', 'Verification report PDF has been downloaded.')
+    } catch (error) {
+      console.error('Verification report PDF export failed', error)
+      toast.error('Export Failed', 'Unable to generate the verification report PDF right now.')
+    }
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between">
@@ -42,7 +66,7 @@ export default function ReportsPage() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => toast.success('PDF Exported', 'Verification report PDF is being prepared.')}
+            onClick={() => handleExportPdf()}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors"
           >
             <Download className="w-4 h-4" />

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ds/card'
 import { useMockStore, MockProof } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
+import { downloadProofReportPdf } from '@/lib/pdf-export'
 
 export default function ProofsPage() {
   const { proofs: mockProofs } = useMockStore()
@@ -46,6 +47,25 @@ export default function ProofsPage() {
   }, [])
 
   const proofs = dbProofs.length > 0 ? dbProofs : mockProofs
+
+  const handleDownload = async (proof: MockProof) => {
+    try {
+      await downloadProofReportPdf({
+        id: proof.id,
+        companyName: proof.companyName,
+        auditName: proof.auditName,
+        status: proof.status,
+        hash: proof.hash,
+        blockchainTxHash: proof.blockchainTxHash,
+        generatedAt: proof.generatedAt,
+        verificationStatus: proof.verificationStatus,
+      })
+      toast.success('Download Started', `Proof ${proof.id} PDF has been downloaded.`)
+    } catch (error) {
+      console.error('Proof PDF download failed', error)
+      toast.error('Download Failed', 'Unable to generate the proof PDF right now.')
+    }
+  }
 
   const filteredProofs = proofs.filter((p) => {
     const matchesSearch =
@@ -167,7 +187,7 @@ export default function ProofsPage() {
                             <EyeIcon className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => toast.success('Download Started', `Proof ${proof.id} package is being downloaded.`)}
+                            onClick={() => handleDownload(proof)}
                             className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-cyan-400"
                           >
                             <Download className="w-4 h-4" />

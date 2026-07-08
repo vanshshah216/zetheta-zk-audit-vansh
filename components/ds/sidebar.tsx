@@ -53,7 +53,7 @@ const SidebarNavItem = React.forwardRef<
     active?: boolean
     icon?: React.ReactNode
   }
->(({ className, active, icon, ...props }, ref) => (
+>(({ className, active, icon, children, ...props }, ref) => (
   <a
     ref={ref}
     className={cn(
@@ -65,7 +65,7 @@ const SidebarNavItem = React.forwardRef<
     {...props}
   >
     {icon && <div className="flex-shrink-0">{icon}</div>}
-    <span>{props.children}</span>
+    <span>{children}</span>
   </a>
 ))
 SidebarNavItem.displayName = 'SidebarNavItem'

@@ -86,13 +86,16 @@ export const authService = {
   ): Promise<{ user: AuthUser; session: AuthSession } | null> {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const userRecord = MOCK_USERS[credentials.email];
+    const normalizedEmail = credentials.email.trim().toLowerCase();
+    const normalizedPassword = credentials.password.trim();
+
+    const userRecord = MOCK_USERS[normalizedEmail];
 
     if (!userRecord) {
       return null;
     }
 
-    if (userRecord.password !== credentials.password) {
+    if (userRecord.password !== normalizedPassword) {
       return null;
     }
 

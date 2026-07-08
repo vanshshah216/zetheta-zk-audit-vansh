@@ -113,11 +113,9 @@ export default function AuditorLayout({ children }: { children: React.ReactNode 
         <SidebarContent>
           <SidebarNav>
             {navigationItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <SidebarNavItem active={isActive(item.href)} icon={item.icon}>
-                  {sidebarOpen && item.label}
-                </SidebarNavItem>
-              </Link>
+              <SidebarNavItem key={item.href} href={item.href} active={isActive(item.href)} icon={item.icon}>
+                {sidebarOpen && item.label}
+              </SidebarNavItem>
             ))}
           </SidebarNav>
         </SidebarContent>

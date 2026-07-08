@@ -8,6 +8,7 @@ import { Button } from '@/components/ds/button'
 import { useMockStore, MockProof } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
+import { downloadProofReportPdf } from '@/lib/pdf-export'
 
 export default function ProofVaultPage() {
   const { proofs: mockProofs } = useMockStore()
@@ -58,8 +59,23 @@ export default function ProofVaultPage() {
     toast.success('Copied!', 'Hash copied to clipboard.')
   }
 
-  const handleDownload = (id: string) => {
-    toast.success('Download Started', `Proof ${id} package is being prepared.`)
+  const handleDownload = async (proof: MockProof) => {
+    try {
+      await downloadProofReportPdf({
+        id: proof.id,
+        companyName: proof.companyName,
+        auditName: proof.auditName,
+        status: proof.status,
+        hash: proof.hash,
+        blockchainTxHash: proof.blockchainTxHash,
+        generatedAt: proof.generatedAt,
+        verificationStatus: proof.verificationStatus,
+      })
+      toast.success('Download Started', `Proof ${proof.id} PDF has been downloaded.`)
+    } catch (error) {
+      console.error('Proof PDF download failed', error)
+      toast.error('Download Failed', 'Unable to generate the proof PDF right now.')
+    }
   }
 
   const handleViewOnChain = (txHash: string) => {
@@ -166,7 +182,7 @@ export default function ProofVaultPage() {
                   className="w-full"
                   variant="cyan"
                   size="sm"
-                  onClick={() => handleDownload(proof.id)}
+                  onClick={() => handleDownload(proof)}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download Proof

@@ -12,7 +12,7 @@ import { Input } from '@/components/ds/input';
 import { Badge } from '@/components/ds/badge';
 import { Alert, AlertDescription } from '@/components/ds/alert';
 import { useFormState } from '@/lib/auth-hooks';
-import { validateEmail, validatePassword } from '@/lib/auth-validation';
+import { validateEmail } from '@/lib/auth-validation';
 import { useAuth } from '@/hooks/use-auth';
 import { AlertTriangle, Mail, Lock, Shield } from 'lucide-react';
 import { FadeIn } from '@/components/ds/animations';
@@ -30,25 +30,32 @@ export default function LoginPage() {
 
     // Validate
     const emailValidation = validateEmail(form.values.email);
-    const passwordValidation = validatePassword(form.values.password);
 
     if (!emailValidation.valid) {
       form.setFieldError('email', emailValidation.error || '');
       return;
     }
 
-    if (!passwordValidation.valid) {
-      form.setFieldError('password', passwordValidation.error || '');
+    if (!form.values.password.trim()) {
+      form.setFieldError('password', 'Password is required');
       return;
     }
 
-    const success = await login({
+    const user = await login({
       email: form.values.email,
       password: form.values.password,
     });
 
-    if (success) {
-      router.push('/auth/success');
+    if (user) {
+      if (user.role === 'audited') {
+        router.push('/company/dashboard');
+      } else if (user.role === 'auditor') {
+        router.push('/auditor/dashboard');
+      } else if (user.role === 'investor') {
+        router.push('/verifier/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
     } else {
       setApiError('Invalid email or password');
     }
