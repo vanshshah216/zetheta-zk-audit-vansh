@@ -10,6 +10,7 @@ import { mockAPI } from '@/lib/company/mock-data'
 import { useMockStore, MockAuditRequest } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
 import { useToast } from '@/hooks/use-toast'
+import { useCurrentProfile } from '@/hooks/use-current-profile'
 
 const AUDIT_CATEGORIES = ['Information Security', 'Compliance', 'Data Protection', 'Healthcare Compliance']
 const INDUSTRIES = ['Technology', 'Cloud Services', 'Healthcare IT', 'Finance', 'Other']
@@ -18,6 +19,7 @@ const COMPLIANCE_STANDARDS = ['ISO27001', 'SOC2', 'GDPR', 'HIPAA', 'PCI-DSS']
 export function RequestAuditForm() {
   const router = useRouter()
   const toast = useToast()
+  const { profileId, companyName, isReady } = useCurrentProfile()
   const { submitAuditRequest } = useMockStore()
   const [step, setStep] = useState(1)
   const [files, setFiles] = useState<File[]>([])
@@ -101,22 +103,12 @@ export function RequestAuditForm() {
 
     setLoading(true)
     try {
-      let profileId = 'comp-current'
-      let profCompanyName = 'Your Company'
-      
-      try {
-        const profile = await supabaseAuditService.getProfileByEmail('company@example.com')
-        if (profile) {
-          profileId = profile.id
-          profCompanyName = profile.company_name || 'Acme Corp'
-        }
-      } catch (err) {
-        console.warn('Could not fetch Supabase profile, falling back to mock values', err)
-      }
+      const resolvedProfileId = profileId ?? 'comp-current'
+      const profCompanyName = companyName
 
       try {
         await supabaseAuditService.createAuditRequest({
-          company_id: profileId,
+          company_id: resolvedProfileId,
           company_name: profCompanyName,
           audit_type: formData.title || formData.category || 'Compliance Audit',
           budget: Number(formData.budget) || 10000,
@@ -137,7 +129,7 @@ export function RequestAuditForm() {
       // Save into shared mock store so auditor sees it
       const newRequest: MockAuditRequest = {
         id: `req-${Date.now()}`,
-        companyId: profileId,
+        companyId: resolvedProfileId,
         companyName: profCompanyName,
         auditType: formData.title || formData.category || 'Compliance Audit',
         budget: Number(formData.budget) || 10000,

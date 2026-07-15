@@ -18,6 +18,7 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   // Read directly from the Zustand store to avoid hook re-render races
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const isLoading = useAuthStore((s) => s.isLoading)
   const user = useAuthStore((s) => s.user)
   const router = useRouter()
   const pathname = usePathname()
@@ -26,6 +27,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   useEffect(() => {
     // Guard: only redirect once per mount to prevent loops
     if (redirectedRef.current) return
+    if (isLoading) return
 
     if (!isAuthenticated || !user) {
       redirectedRef.current = true
@@ -42,7 +44,11 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         router.replace(correctDashboard)
       }
     }
-  }, [isAuthenticated, user, requiredRole, router, pathname])
+  }, [isAuthenticated, isLoading, user, requiredRole, router, pathname])
+
+  if (isLoading) {
+    return null
+  }
 
   // While not authenticated, render nothing (redirect is in flight)
   if (!isAuthenticated || !user) {

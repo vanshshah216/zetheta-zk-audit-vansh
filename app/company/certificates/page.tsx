@@ -7,23 +7,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ds/button'
 import { useMockStore, MockCertificate } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
+import { useCurrentProfile } from '@/hooks/use-current-profile'
 import { useToast } from '@/hooks/use-toast'
 import { downloadCertificatePdf } from '@/lib/pdf-export'
 
 export default function CertificatesPage() {
   const { certificates: mockCerts } = useMockStore()
   const toast = useToast()
+  const { profileId } = useCurrentProfile()
 
   const [isLoading, setIsLoading] = useState(true)
   const [dbCertificates, setDbCertificates] = useState<MockCertificate[]>([])
 
   useEffect(() => {
     const fetchCerts = async () => {
+      if (!profileId) {
+        setIsLoading(false)
+        return
+      }
       setIsLoading(true)
       try {
-        const profile = await supabaseAuditService.getProfileByEmail('company@example.com')
-        if (profile) {
-          const certs = await supabaseAuditService.getCertificatesByCompany(profile.id)
+        const certs = await supabaseAuditService.getCertificatesByCompany(profileId)
           const mappedCerts = certs.map((c) => ({
             id: c.id,
             proofId: '', // Mock fallback
@@ -37,7 +41,6 @@ export default function CertificatesPage() {
             status: c.status as any,
           }))
           setDbCertificates(mappedCerts)
-        }
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to mock store', err)
       } finally {
@@ -45,7 +48,7 @@ export default function CertificatesPage() {
       }
     }
     fetchCerts()
-  }, [])
+  }, [profileId])
 
   const certificates = dbCertificates.length > 0 ? dbCertificates : mockCerts
 

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ds/button'
 import { useMockStore, MockAuditRequest } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
+import { useCurrentProfile } from '@/hooks/use-current-profile'
 import { useToast } from '@/hooks/use-toast'
 import { motion } from 'framer-motion'
 
@@ -16,6 +17,7 @@ const ITEMS_PER_PAGE = 10
 export function MyAuditsContent() {
   const router = useRouter()
   const toast = useToast()
+  const { profileId } = useCurrentProfile()
   const { auditRequests } = useMockStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -28,11 +30,13 @@ export function MyAuditsContent() {
 
   useEffect(() => {
     const fetchAudits = async () => {
+      if (!profileId) {
+        setIsLoading(false)
+        return
+      }
       setIsLoading(true)
       try {
-        const profile = await supabaseAuditService.getProfileByEmail('company@example.com')
-        if (profile) {
-          const reqs = await supabaseAuditService.getAuditRequestsByCompany(profile.id)
+        const reqs = await supabaseAuditService.getAuditRequestsByCompany(profileId)
           const mapped = reqs.map((r) => ({
             id: r.id,
             companyId: r.company_id,
@@ -49,7 +53,6 @@ export function MyAuditsContent() {
             createdAt: r.created_at,
           }))
           setDbAudits(mapped)
-        }
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to mock store', err)
       } finally {
@@ -57,7 +60,7 @@ export function MyAuditsContent() {
       }
     }
     fetchAudits()
-  }, [])
+  }, [profileId])
 
   const activeAudits = dbAudits.length > 0 ? dbAudits : auditRequests
 

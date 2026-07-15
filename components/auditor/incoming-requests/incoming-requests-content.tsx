@@ -8,11 +8,13 @@ import { Card, CardContent } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
 import { useMockStore, MockAuditRequest } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
+import { useCurrentProfile } from '@/hooks/use-current-profile'
 import { useToast } from '@/hooks/use-toast'
 
 export function IncomingRequestsContent() {
   const router = useRouter()
   const toast = useToast()
+  const { profileId } = useCurrentProfile()
   const { auditRequests, acceptRequest, rejectRequest } = useMockStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPriority, setFilterPriority] = useState('all')
@@ -68,9 +70,8 @@ export function IncomingRequestsContent() {
 
   const handleAccept = async (id: string, companyName: string) => {
     try {
-      const profile = await supabaseAuditService.getProfileByEmail('auditor@example.com')
-      if (profile) {
-        await supabaseAuditService.updateAuditRequestStatus(id, 'accepted', profile.id)
+      if (profileId) {
+        await supabaseAuditService.updateAuditRequestStatus(id, 'accepted', profileId)
       }
     } catch (err) {
       console.warn('Supabase update failed, falling back to local store only', err)

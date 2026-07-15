@@ -1,24 +1,57 @@
-import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { NextResponse } from 'next/server'
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client'
 
-export async function GET() {
+function isSeedAuthorized(request: Request): boolean {
+  const seedSecret = process.env.SEED_SECRET
+
+  // Block seeding in production unless explicitly configured
+  if (process.env.NODE_ENV === 'production' && !seedSecret) {
+    return false
+  }
+
+  if (!seedSecret) {
+    return process.env.NODE_ENV !== 'production'
+  }
+
+  const authHeader = request.headers.get('authorization')
+  const url = new URL(request.url)
+  const querySecret = url.searchParams.get('secret')
+
+  return authHeader === `Bearer ${seedSecret}` || querySecret === seedSecret
+}
+
+export async function GET(request: Request) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(
+      { success: false, error: 'Supabase is not configured. Set environment variables first.' },
+      { status: 503 }
+    )
+  }
+
+  if (!isSeedAuthorized(request)) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized. Provide SEED_SECRET via Authorization header or ?secret= query param.' },
+      { status: 401 }
+    )
+  }
+
+  const supabase = getSupabase()
+
   try {
-    // 1. Seed Profiles
     const profiles = [
       { id: 'company-user', email: 'company@example.com', role: 'audited', company_name: 'Tech Corp' },
       { id: 'auditor-user', email: 'auditor@example.com', role: 'auditor', company_name: 'Audit Labs' },
       { id: 'verifier-user', email: 'verifier@example.com', role: 'investor', company_name: 'Verifier DAO' },
-      { id: 'demo-user', email: 'demo@example.com', role: 'auditor', company_name: 'Demo Security' }
-    ];
+      { id: 'demo-user', email: 'demo@example.com', role: 'auditor', company_name: 'Demo Security' },
+    ]
 
     for (const profile of profiles) {
-      const { data: existing } = await supabase.from('profiles').select('id').eq('email', profile.email).single();
+      const { data: existing } = await supabase.from('profiles').select('id').eq('email', profile.email).single()
       if (!existing) {
-        await supabase.from('profiles').insert([profile]);
+        await supabase.from('profiles').insert([profile])
       }
     }
 
-    // 2. Seed Audit Requests
     const auditRequests = [
       {
         id: 'audit-req-1',
@@ -32,7 +65,7 @@ export async function GET() {
         description: 'Pending audit for DeFi protocol',
         status: 'pending',
         documents_count: 3,
-        industry: 'DeFi'
+        industry: 'DeFi',
       },
       {
         id: 'audit-req-2',
@@ -47,18 +80,17 @@ export async function GET() {
         status: 'completed',
         documents_count: 5,
         industry: 'Infrastructure',
-        assigned_auditor_id: 'auditor-user'
-      }
-    ];
+        assigned_auditor_id: 'auditor-user',
+      },
+    ]
 
     for (const req of auditRequests) {
-      const { data: existing } = await supabase.from('audit_requests').select('id').eq('id', req.id).single();
+      const { data: existing } = await supabase.from('audit_requests').select('id').eq('id', req.id).single()
       if (!existing) {
-        await supabase.from('audit_requests').insert([req]);
+        await supabase.from('audit_requests').insert([req])
       }
     }
 
-    // 3. Seed Proofs
     const proofs = [
       {
         id: 'proof-1',
@@ -69,18 +101,17 @@ export async function GET() {
         hash: '0xabc123def456...',
         blockchain_tx_hash: '0x999888777666...',
         generated_at: new Date().toISOString(),
-        verification_status: 'verified'
-      }
-    ];
+        verification_status: 'verified',
+      },
+    ]
 
     for (const proof of proofs) {
-      const { data: existing } = await supabase.from('proofs').select('id').eq('id', proof.id).single();
+      const { data: existing } = await supabase.from('proofs').select('id').eq('id', proof.id).single()
       if (!existing) {
-        await supabase.from('proofs').insert([proof]);
+        await supabase.from('proofs').insert([proof])
       }
     }
 
-    // 4. Seed Certificates
     const certificates = [
       {
         id: 'cert-1',
@@ -92,18 +123,17 @@ export async function GET() {
         expiry_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
         compliance_standard: 'ISO27001',
         status: 'active',
-        verification_hash: '0xabc123def456...'
-      }
-    ];
+        verification_hash: '0xabc123def456...',
+      },
+    ]
 
     for (const cert of certificates) {
-      const { data: existing } = await supabase.from('certificates').select('id').eq('id', cert.id).single();
+      const { data: existing } = await supabase.from('certificates').select('id').eq('id', cert.id).single()
       if (!existing) {
-        await supabase.from('certificates').insert([cert]);
+        await supabase.from('certificates').insert([cert])
       }
     }
 
-    // 5. Seed Verification History
     const verificationHistories = [
       {
         id: 'vh-1',
@@ -111,19 +141,20 @@ export async function GET() {
         action: 'Proof Verified',
         details: 'ZK-SNARK proof validated against on-chain anchor',
         result: 'success',
-        timestamp: new Date().toISOString()
-      }
-    ];
+        timestamp: new Date().toISOString(),
+      },
+    ]
 
     for (const vh of verificationHistories) {
-      const { data: existing } = await supabase.from('verification_history').select('id').eq('id', vh.id).single();
+      const { data: existing } = await supabase.from('verification_history').select('id').eq('id', vh.id).single()
       if (!existing) {
-        await supabase.from('verification_history').insert([vh]);
+        await supabase.from('verification_history').insert([vh])
       }
     }
 
-    return NextResponse.json({ success: true, message: 'Demo data seeded successfully.' });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, message: 'Demo data seeded successfully.' })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }

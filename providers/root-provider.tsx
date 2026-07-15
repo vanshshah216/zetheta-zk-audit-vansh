@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
+import { AuthHydration } from '@/components/auth/auth-hydration'
 import { ErrorBoundary } from '@/providers/error-boundary'
 import { NotificationsDisplay } from '@/components/notifications/notifications-display'
 import { CommandPalette } from '@/components/search/command-palette'
@@ -12,6 +13,7 @@ interface RootProviderProps {
 export function RootProvider({ children }: RootProviderProps) {
   return (
     <ErrorBoundary>
+      <AuthHydration />
       {children}
       <NotificationsDisplay />
       <CommandPalette />

@@ -7,22 +7,26 @@ import { Card, CardContent } from '@/components/ds/card'
 import { Button } from '@/components/ds/button'
 import { useMockStore, MockAuditRequest } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
+import { useCurrentProfile } from '@/hooks/use-current-profile'
 import { ChevronRight, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 
 export function AssignedAuditsContent() {
   const router = useRouter()
   const { getAssignedAudits } = useMockStore()
+  const { profileId } = useCurrentProfile()
   
   const [isLoading, setIsLoading] = useState(true)
   const [dbAudits, setDbAudits] = useState<MockAuditRequest[]>([])
 
   useEffect(() => {
     const fetchAudits = async () => {
+      if (!profileId) {
+        setIsLoading(false)
+        return
+      }
       setIsLoading(true)
       try {
-        const profile = await supabaseAuditService.getProfileByEmail('auditor@example.com')
-        if (profile) {
-          const reqs = await supabaseAuditService.getAssignedAuditRequests(profile.id)
+        const reqs = await supabaseAuditService.getAssignedAuditRequests(profileId)
           const mapped = reqs.map((r) => ({
             id: r.id,
             companyId: r.company_id,
@@ -39,7 +43,6 @@ export function AssignedAuditsContent() {
             createdAt: r.created_at,
           }))
           setDbAudits(mapped)
-        }
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to mock store', err)
       } finally {
@@ -47,7 +50,7 @@ export function AssignedAuditsContent() {
       }
     }
     fetchAudits()
-  }, [])
+  }, [profileId])
 
   const mockAudits = getAssignedAudits()
   const audits = dbAudits.length > 0 ? dbAudits : mockAudits

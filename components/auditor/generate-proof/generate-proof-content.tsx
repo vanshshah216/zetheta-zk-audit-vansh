@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ds/button'
 import { useMockStore, MockProof } from '@/stores/mock-store'
 import { supabaseAuditService } from '@/services/supabase-audit-service'
+import { useCurrentProfile } from '@/hooks/use-current-profile'
 import { useToast } from '@/hooks/use-toast'
 
 const STEPS = [
@@ -31,6 +32,7 @@ function generateHash() {
 export function GenerateProofContent() {
   const router = useRouter()
   const toast = useToast()
+  const { profileId } = useCurrentProfile()
   const { getAssignedAudits, addProof } = useMockStore()
 
   const assignedAudits = getAssignedAudits()
@@ -81,13 +83,8 @@ export function GenerateProofContent() {
         verification_status: 'verified',
       })
       
-      try {
-        const profile = await supabaseAuditService.getProfileByEmail('auditor@example.com')
-        if (profile) {
-          await supabaseAuditService.updateAuditRequestStatus(selectedAuditId, 'completed', profile.id)
-        }
-      } catch (e) {
-        console.warn('Failed to update audit request status to completed', e)
+      if (profileId) {
+        await supabaseAuditService.updateAuditRequestStatus(selectedAuditId, 'completed', profileId)
       }
     } catch (err) {
       console.warn('Supabase create proof failed, falling back to local store only', err)
