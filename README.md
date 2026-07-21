@@ -16,7 +16,11 @@
 
 ## 📖 Project Overview
 
-**Zero Knowledge Audit Marketplace** is a decentralized, enterprise-grade compliance audit platform that connects companies needing audits with professional auditors — while ensuring sensitive business data never leaves the audited company's control.
+**CONFIDENTIAL - Property of Zetheta Algorithms Private Limited
+This repository contains proprietary code and trade secrets.
+Unauthorized access, use, or distribution is strictly prohibited
+
+Zero Knowledge Audit Marketplace** is a decentralized, enterprise-grade compliance audit platform that connects companies needing audits with professional auditors — while ensuring sensitive business data never leaves the audited company's control.
 
 Instead of sharing raw financial and operational data, companies generate **Zero-Knowledge cryptographic proofs** that mathematically guarantee compliance without revealing the underlying data. Verifiers (investors, regulators, partners) can trustlessly confirm compliance through on-chain proof verification.
 
